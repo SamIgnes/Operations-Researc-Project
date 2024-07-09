@@ -103,7 +103,7 @@ barriers = [
     [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
     [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
     [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
-    [(10,10), (80,80),(10, 85), (85,10)] #Irregular triangle
+    [(10,10), (80,80),(10, 85), (10,85)] #Irregular triangle
 ]
 
 # Define start and end points

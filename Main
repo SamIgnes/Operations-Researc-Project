@@ -37,7 +37,7 @@ def astar(start, end, barriers):
 
         neighbors = get_neighbors(current_node.point, barriers)
         for next_point in neighbors:
-            if next_point in closed_list:
+            if next_point in closed_list:  # Not possible to go back
                 continue
 
             neighbor_node = Node(next_point, current_node)
@@ -45,7 +45,7 @@ def astar(start, end, barriers):
             neighbor_node.h = heuristic(neighbor_node.point, end_node.point)
             neighbor_node.f = neighbor_node.g + neighbor_node.h
 
-            if add_to_open(open_list, neighbor_node):
+            if add_to_open(open_list, neighbor_node): 
                 heapq.heappush(open_list, neighbor_node)
 
     return None
@@ -54,8 +54,8 @@ def get_neighbors(point, barriers):
     neighbors = []
     step_size = 1  # Step size for moving to neighbors
 
-    for dx in [-step_size, 0, step_size]:
-        for dy in [-step_size, 0, step_size]:
+    for dx in [-step_size,-step_size/2, 0, step_size/2,step_size]: # Aumentare questi for 
+        for dy in [-step_size,-step_size/2, 0, step_size/2,step_size]: #Aumentare questi for 
             if dx == 0 and dy == 0:
                 continue
             neighbor = (point[0] + dx, point[1] + dy)
@@ -73,7 +73,7 @@ def is_collision(point, barriers):
 
 def add_to_open(open_list, neighbor_node):
     for node in open_list:
-        if neighbor_node.point == node.point and neighbor_node.g >= node.g:
+        if neighbor_node.point == node.point and neighbor_node.g >= node.g: 
             return False
     return True
 

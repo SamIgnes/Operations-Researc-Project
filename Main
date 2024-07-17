@@ -52,9 +52,9 @@ def astar(start, end, barriers):
 
 def get_neighbors(point, barriers):
     neighbors = []
-    step_size = 1  # Step size for moving to neighbors
+    step_size =  1 # Step size for moving to neighbors
 
-    for dx in [-step_size, 0, step_size]: # Aumentare questi for 
+    for dx in [-step_size,-step_size/2, 0, step_size/2, step_size]: # Aumentare questi for 
         for dy in [-step_size, 0, step_size]: #Aumentare questi for 
             if dx == 0 and dy == 0:
                 continue

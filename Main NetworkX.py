@@ -157,16 +157,12 @@ def smoothness(position):
             smooth = math.pi
         elif position[i+1][0]-position[i][0] == 0 :
             smooth = abs(math.pi+math.pi/2-math.atan((position[i][1]-position[i-1][1])/(position[i][0]-position[i-1][0])))
-            if smooth < 3*math.pi/4:
-                smooth += math.pi/2
+
         elif position[i][0]-position[i-1][0] == 0 :
             smooth = abs(math.pi+math.pi/2-math.atan((position[i+1][1]-position[i][1])/(position[i+1][0]-position[i][0])))
-            if smooth < 3*math.pi/4:
-                smooth += math.pi/2
+
         else:
             smooth += abs(math.pi+math.atan((position[i+1][1]-position[i][1])/(position[i+1][0]-position[i][0]))-math.atan((position[i][1]-position[i-1][1])/(position[i][0]-position[i-1][0])))
-            if smooth < 3*math.pi/4:
-                smooth += math.pi/2
 
     return smooth
 

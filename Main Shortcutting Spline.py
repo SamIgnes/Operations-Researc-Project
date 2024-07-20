@@ -1,12 +1,10 @@
-import networkx as nx
+import math
 import random
+import numpy as np
+import networkx as nx
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import math
-import numpy as np
 from scipy.interpolate import splprep, splev
-
-
 
 def heuristic(a, b):
     return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
@@ -19,7 +17,6 @@ def calculate_penalty(point, barriers):
             if distance < min_distance:
                 min_distance = distance
     return 10 / (min_distance + 1)  # Penalizzazione inversa
-
 
 def EdgeCost(node, neighbor, barriers):
     edgecost = heuristic(node, neighbor) + calculate_penalty(neighbor, barriers) 
@@ -71,6 +68,59 @@ def point_in_polygon(point, polygon):
         p1x, p1y = p2x, p2y
 
     return inside
+
+def is_line_intersecting_polygon(p1, p2, polygon):
+    for i in range(len(polygon)):
+        p3 = polygon[i]
+        p4 = polygon[(i + 1) % len(polygon)]
+        if do_lines_intersect(p1, p2, p3, p4):
+            return True
+    return False
+
+def do_lines_intersect(p1, p2, p3, p4):
+    def ccw(A, B, C):
+        return (C[1] - A[1]) * (B[0] - A[0]) > (B[1] - A[1]) * (C[0] - A[0])
+    
+    return ccw(p1, p3, p4) != ccw(p2, p3, p4) and ccw(p1, p2, p3) != ccw(p1, p2, p4)
+
+def is_collision_with_line(p1, p2, barriers):
+    for barrier in barriers:
+        if is_line_intersecting_polygon(p1, p2, barrier):
+            return True
+    return False
+
+def shortcut_path(path, barriers):
+    if not path:
+        return path
+
+    new_path = [path[0]]
+    i = 0
+
+    while i < len(path) - 1:
+        for j in range(len(path) - 1, i, -1):
+            if not is_collision_with_line(path[i], path[j], barriers):
+                new_path.append(path[j])
+                i = j
+                break
+        else:
+            i += 1
+            new_path.append(path[i])
+
+    return new_path
+
+def smooth_path(path):
+    if not path or len(path) < 3:
+        return path
+
+    x = [point[0] for point in path]
+    y = [point[1] for point in path]
+
+    tck, u = splprep([x, y], s=0)
+    unew = np.linspace(0, 1, len(path) * 10)
+    x_new, y_new = splev(unew, tck)
+
+    smooth_path = [(x_new[i], y_new[i]) for i in range(len(x_new))]
+    return smooth_path
 
 def plot_environment_and_path(barriers, paths):
     fig, ax = plt.subplots()
@@ -146,93 +196,6 @@ def plot_polygons(barriers):
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
 
-class Particle:
-    def __init__(self, position, velocity):
-        self.position = position
-        self.velocity = velocity
-        self.best_position = position
-        self.best_cost = float('inf')
-
-def smoothness(position):
-    smooth = 0
-    for i in range(1,len(position)-2):
-
-        alpha = math.atan2(position[i+1][0]-position[i][0], position[i+1][1]-position[i][0])
-        beta = math.atan2(position[i][0]-position[i-1][0], position[i][1]-position[i-1][1])
-
-        if abs(alpha-beta) > math.pi/8: smooth += 100
-
-        smooth += abs(alpha-beta)
-    return smooth
-
-def evaluate_cost(position, end, barriers):
-    total_cost = 0
-    #for i in range(len(position) - 1):
-        #total_cost += heuristic(position[i], position[i+1])
-    
-    #total_cost += heuristic(position[-1], end)
-    #total_cost += calculate_penalty(position[-1], barriers)
-    total_cost += smoothness(position)
-
-    return total_cost
-
-def pso_optimization(start, end, barriers, best_path_astar):
-    num_particles = 100
-    max_iterations = 200
-    inertia_weight = 0.7
-    cognitive_param = 1.5
-    social_param = 1.5
-
-    particles = []
-    for _ in range(num_particles):
-        # Initialize particles around the best path found by A*
-        initial_position = [best_path_astar[0]] + \
-                   [(point[0] + random.uniform(-0.1, +0.1), point[1] + random.uniform(-0.1 , +0.1)) 
-                    for point in best_path_astar[1:-2]] + \
-                   [best_path_astar[-1]]
-        initial_velocity = [(0, 0) for _ in initial_position]
-        particles.append(Particle(initial_position, initial_velocity))
-
-    global_best_position = best_path_astar
-
-    global_best_cost = evaluate_cost(global_best_position, end, barriers)
-
-    for _ in range(max_iterations):
-        for particle in particles:
-            # Update particle velocity
-            for i in range(len(particle.position)):
-                r1, r2 = random.uniform(0, 1), random.uniform(0, 1)
-                cognitive_velocity = (cognitive_param * r1 * 
-                                      (particle.best_position[i][0] - particle.position[i][0]), 
-                                      cognitive_param * r1 * 
-                                      (particle.best_position[i][1] - particle.position[i][1]))
-                social_velocity = (social_param * r2 * 
-                                   (global_best_position[i][0] - particle.position[i][0]), 
-                                   social_param * r2 * 
-                                   (global_best_position[i][1] - particle.position[i][1]))
-                particle.velocity[i] = (inertia_weight * particle.velocity[i][0] + cognitive_velocity[0] + social_velocity[0],
-                                        inertia_weight * particle.velocity[i][1] + cognitive_velocity[1] + social_velocity[1])
-            
-            # Update particle position
-            new_position = [(particle.position[i][0] + particle.velocity[i][0], 
-                             particle.position[i][1] + particle.velocity[i][1]) 
-                            for i in range(len(particle.position))]
-            
-            # Evaluate new position
-            new_cost = evaluate_cost(new_position, end, barriers)
-
-            # Update particle's best position if improved
-            if new_cost < particle.best_cost:
-                particle.best_position = new_position
-                particle.best_cost = new_cost
-            
-            # Update global best if improved
-            if new_cost < global_best_cost:
-                global_best_position = new_position
-                global_best_cost = new_cost
-
-    return global_best_position
-
 width = 100
 height = 100
 # Generate 10 non-intersecting polygons excluding start and end points
@@ -246,12 +209,12 @@ graph = create_graph(barriers, width, height)
 # Find the path using A* algorithm
 best_path_astar = nx.astar_path(graph, start, end, heuristic=heuristic)
 
-plot_environment_and_path(barriers, [best_path_astar])
+# Shortcut the path to make it smoother
+shortcutted_path = shortcut_path(best_path_astar, barriers)
 
-# Ottimizza il percorso trovato con PSO
-optimized_path = pso_optimization(start, end, barriers, best_path_astar)
+# Further smooth the path using splines
+smooth_best_path = smooth_path(shortcutted_path)
 
-# Plot percorso ottimizzato con PSO
-plot_environment_and_path(barriers, [optimized_path])
+plot_environment_and_path(barriers, [best_path_astar, shortcutted_path, smooth_best_path])
 
 plt.show()

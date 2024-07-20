@@ -4,10 +4,11 @@ import matplotlib.patches as patches
 from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
+from shapely.geometry import Point, Polygon
 
 class PathFindingProblem(Problem):
 
-    def __init__(self, start, end, barriers, n_points=30): 
+    def __init__(self, start, end, barriers, n_points=8): 
         self.start = start
         self.end = end
         self.barriers = barriers
@@ -24,12 +25,11 @@ class PathFindingProblem(Problem):
                 distance = np.linalg.norm(np.array(point) - np.array(vertex))
                 if distance < min_distance:
                     min_distance = distance
-        return 1 / (min_distance + 1)  # Inverse penalty 
+        return 1 / 10*(min_distance + 1)  # Inverse penalty 
         #return 1 / (min_distance)  # Inverse penalty 
 
-    ####################### added
-
-    def point_in_polygon(point, polygon):
+#############
+    def point_in_polygon(self, point, polygon):
         x, y = point
         n = len(polygon)
         inside = False
@@ -47,34 +47,47 @@ class PathFindingProblem(Problem):
             p1x, p1y = p2x, p2y
 
         return inside
+
+    #def is_collision(self, point):
+        #for barrier in self.barriers:
+            #if self.point_in_polygon(point, barrier):
+                #return True
+        #return False
     
-    def is_collision(self, point):
+    def do_lines_intersect(self, A, B, C, D):
+        def ccw(A, B, C):
+            return (C[1]-A[1]) * (B[0]-A[0]) > (B[1]-A[1]) * (C[0]-A[0])
+        return ccw(A, C, D) != ccw(B, C, D) and ccw(A, B, C) != ccw(A, B, D)
+
+    def is_collision(self, point1, point2=None):
         for barrier in self.barriers:
-            if self.point_in_polygon(point, barrier):
+            if self.point_in_polygon(point1, barrier):
                 return True
-        return False
-
-
-
-    ####################### fin qui
+            if point2 is not None:
+                for i in range(len(barrier)):
+                    if self.do_lines_intersect(point1, point2, barrier[i], barrier[(i+1) % len(barrier)]):
+                        return True
+        return False   
 
     def _evaluate(self, X, out, *args, **kwargs):
         paths = X.reshape(-1, self.n_points, 2)
         total_distances = []
         penalties = []
-        
+
         for path in paths:
             path = np.vstack([self.start, path, self.end])
             total_distance = 0
             total_penalty = 0
-            
+
             for i in range(len(path) - 1):
                 total_distance += np.linalg.norm(path[i+1] - path[i])
                 total_penalty += self.calculate_penalty(path[i])
-            
+                if self.is_collision(path[i]):
+                    total_penalty += 100  # Large penalty for collision
+
             total_distances.append(total_distance)
             penalties.append(total_penalty)
-        
+
         out["F"] = np.column_stack([total_distances, penalties])
 
 def plot_path(barriers, path):

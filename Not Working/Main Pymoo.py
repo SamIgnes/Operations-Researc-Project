@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pymoo.core.problem import Problem
-from pymoo.algorithms.soo.nonconvex.ga import GA
+from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 
 class PathFindingProblem(Problem):
@@ -82,7 +82,7 @@ end = np.array([90, 90])
 problem = PathFindingProblem(start, end, barriers)
 
 # Define the algorithm
-algorithm = GA(pop_size=100, eliminate_duplicates=True)
+algorithm = NSGA2(pop_size=100, eliminate_duplicates=True)
 
 # Perform the optimization
 res = minimize(problem,

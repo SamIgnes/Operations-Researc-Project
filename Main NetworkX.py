@@ -167,18 +167,18 @@ def smoothness(position):
 
 def evaluate_cost(position, end, barriers):
     total_cost = 0
-    #for i in range(len(position) - 1):
-        #total_cost += heuristic(position[i], position[i+1])
+    for i in range(len(position) - 1):
+        total_cost += heuristic(position[i], position[i+1])
     
-    #total_cost += heuristic(position[-1], end)
-    #total_cost += calculate_penalty(position[-1], barriers)
+    total_cost += heuristic(position[-1], end)
+    total_cost += calculate_penalty(position[-1], barriers)
     total_cost += smoothness(position)
 
     return total_cost
 
 def pso_optimization(start, end, barriers, best_path_astar):
     num_particles = 100
-    max_iterations = 200
+    max_iterations = 2000
     inertia_weight = 0.7
     cognitive_param = 1.5
     social_param = 1.5
@@ -236,9 +236,17 @@ def pso_optimization(start, end, barriers, best_path_astar):
 width = 100
 height = 100
 # Generate 10 non-intersecting polygons excluding start and end points
-start = (random.randint(0, width), random.randint(0, height))
-end = (random.randint(0, width), random.randint(0, height))
-barriers = create_non_intersecting_polygons(10, start=start, end=end)
+# start = (random.randint(0, width), random.randint(0, height))
+# end = (random.randint(0, width), random.randint(0, height))
+# barriers = create_non_intersecting_polygons(10, start=start, end=end)
+
+start = (0,0)
+end = (90,90)
+barriers =[
+    [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
+    [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
+    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
+]
 
 # Create graph
 graph = create_graph(barriers, width, height)

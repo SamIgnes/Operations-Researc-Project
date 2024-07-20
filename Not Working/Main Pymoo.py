@@ -25,7 +25,7 @@ class PathFindingProblem(Problem):
                 distance = np.linalg.norm(np.array(point) - np.array(vertex))
                 if distance < min_distance:
                     min_distance = distance
-        return 1 / 10*(min_distance + 1)  # Inverse penalty 
+        return -1 / 10*(min_distance + 1)  # Inverse penalty 
         #return 1 / (min_distance)  # Inverse penalty 
 
 #############

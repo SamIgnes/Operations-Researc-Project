@@ -7,7 +7,7 @@ from pymoo.optimize import minimize
 
 class PathFindingProblem(Problem):
 
-    def __init__(self, start, end, barriers, n_points=10):
+    def __init__(self, start, end, barriers, n_points=30): 
         self.start = start
         self.end = end
         self.barriers = barriers
@@ -24,7 +24,39 @@ class PathFindingProblem(Problem):
                 distance = np.linalg.norm(np.array(point) - np.array(vertex))
                 if distance < min_distance:
                     min_distance = distance
-        return 1 / (min_distance + 1)  # Inverse penalty
+        return 1 / (min_distance + 1)  # Inverse penalty 
+        #return 1 / (min_distance)  # Inverse penalty 
+
+    ####################### added
+
+    def point_in_polygon(point, polygon):
+        x, y = point
+        n = len(polygon)
+        inside = False
+
+        p1x, p1y = polygon[0]
+        for i in range(n + 1):
+            p2x, p2y = polygon[i % n]
+            if y > min(p1y, p2y):
+                if y <= max(p1y, p2y):
+                    if x <= max(p1x, p2x):
+                        if p1y != p2y:
+                            xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        if p1x == p2x or x <= xinters:
+                            inside = not inside
+            p1x, p1y = p2x, p2y
+
+        return inside
+    
+    def is_collision(self, point):
+        for barrier in self.barriers:
+            if self.point_in_polygon(point, barrier):
+                return True
+        return False
+
+
+
+    ####################### fin qui
 
     def _evaluate(self, X, out, *args, **kwargs):
         paths = X.reshape(-1, self.n_points, 2)
@@ -70,8 +102,8 @@ def plot_path(barriers, path):
 barriers = [
     [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
     [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
-    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
-    [(10,10), (80,80),(10, 85), (10,85)] #Irregular triangle
+    [(70, 70), (80, 65), (85, 75), (75, 80)]  # Irregular quadrilateral barrier
+    #[(10,10), (80,80),(10, 85), (10,85)] #Irregular triangle
 ]
 
 # Define start and end points

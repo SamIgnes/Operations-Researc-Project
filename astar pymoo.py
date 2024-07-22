@@ -1,23 +1,23 @@
 import numpy as np
 import math
-import random
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
+import heapq
 
 class PathFindingProblem(Problem):
-
-    def __init__(self, start, end, barriers, n_points = 8): 
+    def __init__(self, start, end, barriers, n_points=5, max_variance=5.0): 
         self.start = start
         self.end = end
         self.barriers = barriers
         self.n_points = n_points
-        self.safe_distance = 2.0  # Safe distance threshold
+        self.safe_distance = 5.0  # Safe distance threshold
+        self.max_variance = max_variance  # Maximum allowed variance in segment lengths
         super().__init__(n_var=2 * n_points,
-                         n_obj=3,  # Change to 4 objectives
-                         n_constr=1,
+                         n_obj=3,  # Change to 3 objectives
+                         n_constr=2,  # Change to 2 constraints
                          xl=0.0,
                          xu=100.0)
     
@@ -29,7 +29,7 @@ class PathFindingProblem(Problem):
                 if distance < min_distance:
                     min_distance = distance
         if min_distance < self.safe_distance:
-            penalty = 1 / (min_distance)  # Inverse penalty within safe distance
+            penalty = 1 / (min_distance + 1)  # Inverse penalty within safe distance
         else:
             penalty = 0  # No penalty beyond safe distance
         return penalty
@@ -92,8 +92,8 @@ class PathFindingProblem(Problem):
         total_distances = []
         penalties = []
         smoothness_scores = []
-        uniformity_scores = []
         collision_constraints = []
+        variance_constraints = []
 
         for path in paths:
             path = np.vstack([self.start, path, self.end])
@@ -108,15 +108,15 @@ class PathFindingProblem(Problem):
                     collision += 1  # Increment collision count
 
             smooth = self.smoothness(path)
-            uniform = self.uniformity(path)
+            variance = self.uniformity(path)
             total_distances.append(total_distance)
             penalties.append(total_penalty)
             smoothness_scores.append(smooth)
-            #uniformity_scores.append(uniform)
             collision_constraints.append(collision)  # Add collision count to constraints
+            variance_constraints.append(variance - self.max_variance)  # Add variance constraint
 
         out["F"] = np.column_stack([total_distances, penalties, smoothness_scores])
-        out["G"] = np.column_stack([collision_constraints])  # Set constraints
+        out["G"] = np.column_stack([collision_constraints, variance_constraints])  # Set constraints
 
 def plot_path(barriers, path):
     fig, ax = plt.subplots()
@@ -139,76 +139,88 @@ def plot_path(barriers, path):
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
 
-def generate_random_polygon(max_sides, min_radius, max_radius):
-    num_sides = random.randint(3, max_sides)
-    angle_step = 360 / num_sides
-    points = []
-    for i in range(num_sides):
-        angle = math.radians(i * angle_step)
-        radius = random.uniform(min_radius, max_radius)
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        points.append((x, y))
-    return points
+def astar(start, end, barriers):
+    def heuristic(a, b):
+        return np.linalg.norm(a - b)
 
-def is_intersecting(polygon, barriers):
-    poly_patch = patches.Polygon(polygon, closed=True)
-    for barrier in barriers:
-        barrier_patch = patches.Polygon(barrier, closed=True)
-        if poly_patch.get_path().intersects_path(barrier_patch.get_path()):
-            return True
-    return False
+    def is_valid_point(point):
+        if point[0] < 0 or point[0] > 100 or point[1] < 0 or point[1] > 100:
+            return False
+        for barrier in barriers:
+            if point_in_polygon(point, barrier):
+                return False
+        return True
 
-def create_non_intersecting_polygons(n, max_sides=6, min_radius=10, max_radius=20, width=100, height=100, start=(0, 0), end=(100, 100)):
-    barriers = []
-    attempts = 0
-    while len(barriers) < n and attempts < 1000:
-        attempts += 1
-        polygon = generate_random_polygon(max_sides, min_radius, max_radius)
-        centroid_x = random.uniform(0, width)
-        centroid_y = random.uniform(0, height)
-        translated_polygon = [(x + centroid_x, y + centroid_y) for x, y in polygon]
-        
-        # Check if start and end points are inside the translated polygon
-        if not point_in_polygon(start, translated_polygon) and not point_in_polygon(end, translated_polygon):
-            if not is_intersecting(translated_polygon, barriers):
-                barriers.append(translated_polygon)
-    
-    return barriers
+    def point_in_polygon(point, polygon):
+        x, y = point
+        n = len(polygon)
+        inside = False
 
-def point_in_polygon(point, polygon):
-    x, y = point
-    n = len(polygon)
-    inside = False
+        p1x, p1y = polygon[0]
+        for i in range(n + 1):
+            p2x, p2y = polygon[i % n]
+            if y > min(p1y, p2y):
+                if y <= max(p1y, p2y):
+                    if x <= max(p1x, p2x):
+                        if p1y != p2y:
+                            xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                        if p1x == p2x or x <= xinters:
+                            inside = not inside
+            p1x, p1y = p2x, p2y
 
-    p1x, p1y = polygon[0]
-    for i in range(n + 1):
-        p2x, p2y = polygon[i % n]
-        if y > min(p1y, p2y):
-            if y <= max(p1y, p2y):
-                if x <= max(p1x, p2x):
-                    if p1y != p2y:
-                        xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
-                    if p1x == p2x or x <= xinters:
-                        inside = not inside
-        p1x, p1y = p2x, p2y
+        return inside
 
-    return inside
-width = 100
-height = 100
-# Generate 10 non-intersecting polygons excluding start and end points
-#start = np.array([random.randint(0, width), random.randint(0, height)])
-#end = np.array([random.randint(0, width), random.randint(0, height)])
+    def a_star_algorithm(start, end):
+        open_set = []
+        heapq.heappush(open_set, (0 + heuristic(start, end), 0, tuple(start), []))
+        came_from = {}
+        g_score = {tuple(start): 0}
+        f_score = {tuple(start): heuristic(start, end)}
 
-# Define start and end points
+        while open_set:
+            _, current_cost, current, path = heapq.heappop(open_set)
+            current = np.array(current)
+
+            if np.linalg.norm(current - end) < 1e-2:
+                return np.array(path + [current] + [end])
+
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                neighbor = current + np.array([dx, dy])
+                if is_valid_point(neighbor):
+                    tentative_g_score = g_score[tuple(current)] + np.linalg.norm(neighbor - current)
+                    if tuple(neighbor) not in g_score or tentative_g_score < g_score[tuple(neighbor)]:
+                        came_from[tuple(neighbor)] = tuple(current)
+                        g_score[tuple(neighbor)] = tentative_g_score
+                        f_score[tuple(neighbor)] = tentative_g_score + heuristic(neighbor, end)
+                        heapq.heappush(open_set, (f_score[tuple(neighbor)], tentative_g_score, tuple(neighbor), path + [current]))
+
+        return []
+
+    path = a_star_algorithm(start, end)
+    return np.array(path)
+
+# Define barriers, start, end points
+barriers = [
+    [(10, 10), (20, 10), (15, 20)],
+    [(30, 30), (50, 30), (50, 50), (30, 50)],
+    [(70, 70), (80, 65), (85, 75), (75, 80)]
+]
+
 start = np.array([0, 0])
 end = np.array([90, 90])
 
-barriers = create_non_intersecting_polygons(10, start=start, end=end)
+# Compute A* path
+astar_path = astar(start, end, barriers)
+astar_path = np.vstack([start, astar_path, end])
 
+plot_path(barriers, astar_path)
+
+# Generate initial population
+n_individuals = 10
+initial_population = np.tile(astar_path.flatten(), (n_individuals, 1))
 
 # Define the problem
-problem = PathFindingProblem(start, end, barriers)
+problem = PathFindingProblem(start, end, barriers, n_points=5)
 
 # Define the algorithm
 algorithm = NSGA2(pop_size=100, eliminate_duplicates=True)
@@ -216,9 +228,10 @@ algorithm = NSGA2(pop_size=100, eliminate_duplicates=True)
 # Perform the optimization
 res = minimize(problem,
                algorithm,
-               ('n_gen', 200),
+               termination=('n_gen', 200),
                seed=1,
-               verbose=True)
+               verbose=True,
+               X=initial_population)  # Pass the initial population
 
 # Get the optimal path
 optimal_path = res.X.reshape(-1, problem.n_points, 2)[0]

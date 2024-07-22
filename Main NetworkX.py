@@ -11,14 +11,20 @@ import numpy as np
 def heuristic(a, b):
     return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
 
-def calculate_penalty(point, barriers):
+def calculate_penalty(point, barriers, safe_distance = 2):
     min_distance = float('inf')
     for barrier in barriers:
         for vertex in barrier:
-            distance = heuristic(point, vertex)
+            distance = np.linalg.norm(np.array(point) - np.array(vertex))
             if distance < min_distance:
                 min_distance = distance
-    return 10 / (min_distance + 1)  # Penalizzazione inversa
+    if min_distance < safe_distance:
+        penalty = 1 / (min_distance + 0.01)  # Inverse penalty within safe distance
+    else:
+        penalty = 0  # No penalty beyond safe distance
+    return penalty
+
+
 
 
 def EdgeCost(node, neighbor, barriers):
@@ -176,77 +182,25 @@ def evaluate_cost(position, end, barriers):
 
     return total_cost
 
-def pso_optimization(start, end, barriers, best_path_astar):
-    num_particles = 100
-    max_iterations = 2000
-    inertia_weight = 0.7
-    cognitive_param = 1.5
-    social_param = 1.5
-
-    particles = []
-    for _ in range(num_particles):
-        # Initialize particles around the best path found by A*
-        initial_position = [best_path_astar[0]] + \
-                   [(point[0] + random.uniform(-0.1, +0.1), point[1] + random.uniform(-0.1 , +0.1)) 
-                    for point in best_path_astar[1:-2]] + \
-                   [best_path_astar[-1]]
-        initial_velocity = [(0, 0) for _ in initial_position]
-        particles.append(Particle(initial_position, initial_velocity))
-
-    global_best_position = best_path_astar
-
-    global_best_cost = evaluate_cost(global_best_position, end, barriers)
-
-    for _ in range(max_iterations):
-        for particle in particles:
-            # Update particle velocity
-            for i in range(len(particle.position)):
-                r1, r2 = random.uniform(0, 1), random.uniform(0, 1)
-                cognitive_velocity = (cognitive_param * r1 * 
-                                      (particle.best_position[i][0] - particle.position[i][0]), 
-                                      cognitive_param * r1 * 
-                                      (particle.best_position[i][1] - particle.position[i][1]))
-                social_velocity = (social_param * r2 * 
-                                   (global_best_position[i][0] - particle.position[i][0]), 
-                                   social_param * r2 * 
-                                   (global_best_position[i][1] - particle.position[i][1]))
-                particle.velocity[i] = (inertia_weight * particle.velocity[i][0] + cognitive_velocity[0] + social_velocity[0],
-                                        inertia_weight * particle.velocity[i][1] + cognitive_velocity[1] + social_velocity[1])
-            
-            # Update particle position
-            new_position = [(particle.position[i][0] + particle.velocity[i][0], 
-                             particle.position[i][1] + particle.velocity[i][1]) 
-                            for i in range(len(particle.position))]
-            
-            # Evaluate new position
-            new_cost = evaluate_cost(new_position, end, barriers)
-
-            # Update particle's best position if improved
-            if new_cost < particle.best_cost:
-                particle.best_position = new_position
-                particle.best_cost = new_cost
-            
-            # Update global best if improved
-            if new_cost < global_best_cost:
-                global_best_position = new_position
-                global_best_cost = new_cost
-
-    return global_best_position
 
 width = 100
 height = 100
-# Generate 10 non-intersecting polygons excluding start and end points
+
+
 # start = (random.randint(0, width), random.randint(0, height))
 # end = (random.randint(0, width), random.randint(0, height))
-# barriers = create_non_intersecting_polygons(10, start=start, end=end)
 
 start = (0,0)
 end = (90,90)
-barriers =[
-    [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
-    [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
-    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
-]
+#barriers =[
+#    [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
+#    [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
+#    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
+#]
+barriers = create_non_intersecting_polygons(10, start=start, end=end)
+
+plot_environment_and_path(barriers, [])
+plt.show()
 
 # Create graph
 graph = create_graph(barriers, width, height)
@@ -255,11 +209,5 @@ graph = create_graph(barriers, width, height)
 best_path_astar = nx.astar_path(graph, start, end, heuristic=heuristic)
 
 plot_environment_and_path(barriers, [best_path_astar])
-
-# Ottimizza il percorso trovato con PSO
-optimized_path = pso_optimization(start, end, barriers, best_path_astar)
-
-# Plot percorso ottimizzato con PSO
-plot_environment_and_path(barriers, [optimized_path])
 
 plt.show()

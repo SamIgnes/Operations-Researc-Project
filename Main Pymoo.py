@@ -13,7 +13,7 @@ class PathFindingProblem(Problem):
         self.end = end
         self.barriers = barriers
         self.n_points = n_points
-        self.safe_distance = 5.0  # Safe distance threshold
+        self.safe_distance = 2.0  # Safe distance threshold
         super().__init__(n_var=2 * n_points,
                          n_obj=3,  # Change to 4 objectives
                          n_constr=1,

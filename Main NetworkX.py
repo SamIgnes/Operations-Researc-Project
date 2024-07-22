@@ -152,36 +152,6 @@ def plot_polygons(barriers):
     plt.gca().set_aspect('equal', adjustable='box')
     plt.show()
 
-class Particle:
-    def __init__(self, position, velocity):
-        self.position = position
-        self.velocity = velocity
-        self.best_position = position
-        self.best_cost = float('inf')
-
-def smoothness(position):
-    smooth = 0
-    for i in range(1,len(position)-2):
-
-        alpha = math.atan2(position[i+1][0]-position[i][0], position[i+1][1]-position[i][0])
-        beta = math.atan2(position[i][0]-position[i-1][0], position[i][1]-position[i-1][1])
-
-        if abs(alpha-beta) > math.pi/8: smooth += 100
-
-        smooth += abs(alpha-beta)
-    return smooth
-
-def evaluate_cost(position, end, barriers):
-    total_cost = 0
-    for i in range(len(position) - 1):
-        total_cost += heuristic(position[i], position[i+1])
-    
-    total_cost += heuristic(position[-1], end)
-    total_cost += calculate_penalty(position[-1], barriers)
-    total_cost += smoothness(position)
-
-    return total_cost
-
 
 width = 100
 height = 100

@@ -8,14 +8,15 @@ from pymoo.optimize import minimize
 
 class PathFindingProblem(Problem):
 
-    def __init__(self, start, end, barriers, n_points=5): 
+    def __init__(self, start, end, barriers, n_points = 10): 
         self.start = start
         self.end = end
         self.barriers = barriers
-        self.n_points = n_points  # Number of points in the path excluding start and end
+        self.n_points = n_points
+        self.safe_distance = 5.0  # Safe distance threshold
         super().__init__(n_var=2 * n_points,
-                         n_obj=2,  # Change this to 2 objectives
-                         n_constr=1,  # Add 1 constraint
+                         n_obj=3,  # Change to 4 objectives
+                         n_constr=1,
                          xl=0.0,
                          xu=100.0)
     
@@ -26,7 +27,11 @@ class PathFindingProblem(Problem):
                 distance = np.linalg.norm(np.array(point) - np.array(vertex))
                 if distance < min_distance:
                     min_distance = distance
-        return 1 / (min_distance + 1)  # Inverse penalty 
+        if min_distance < self.safe_distance:
+            penalty = 1 / (min_distance)  # Inverse penalty within safe distance
+        else:
+            penalty = 0  # No penalty beyond safe distance
+        return penalty
     
     def point_in_polygon(self, point, polygon):
         x, y = point
@@ -76,11 +81,17 @@ class PathFindingProblem(Problem):
         
         return smooth / len(position)  # Normalize smoothness score
 
+    def uniformity(self, path):
+        distances = [np.linalg.norm(path[i + 1] - path[i]) for i in range(len(path) - 1)]
+        variance = np.var(distances)
+        return variance
+
     def _evaluate(self, X, out, *args, **kwargs):
         paths = X.reshape(-1, self.n_points, 2)
         total_distances = []
         penalties = []
         smoothness_scores = []
+        uniformity_scores = []
         collision_constraints = []
 
         for path in paths:
@@ -95,13 +106,15 @@ class PathFindingProblem(Problem):
                 if self.is_collision(path[i], path[i + 1]):
                     collision += 1  # Increment collision count
 
-            smooth = self.smoothness(path) 
+            smooth = self.smoothness(path)
+            uniform = self.uniformity(path)
             total_distances.append(total_distance)
             penalties.append(total_penalty)
             smoothness_scores.append(smooth)
+            #uniformity_scores.append(uniform)
             collision_constraints.append(collision)  # Add collision count to constraints
 
-        out["F"] = np.column_stack([total_distances, smoothness_scores])
+        out["F"] = np.column_stack([total_distances, penalties, smoothness_scores])
         out["G"] = np.column_stack([collision_constraints])  # Set constraints
 
 def plot_path(barriers, path):
@@ -129,7 +142,9 @@ def plot_path(barriers, path):
 barriers = [
     [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
     [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
-    [(70, 70), (80, 65), (85, 75), (75, 80)]  # Irregular quadrilateral barrier
+    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
+    [(70,65), (50, 10), (20,10)]
+
 ]
 
 # Define start and end points

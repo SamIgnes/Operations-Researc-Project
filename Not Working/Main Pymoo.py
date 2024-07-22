@@ -8,13 +8,13 @@ from pymoo.optimize import minimize
 
 class PathFindingProblem(Problem):
 
-    def __init__(self, start, end, barriers, n_points=8): 
+    def __init__(self, start, end, barriers, n_points = 8 ): 
         self.start = start
         self.end = end
         self.barriers = barriers
         self.n_points = n_points  # Number of points in the path excluding start and end
         super().__init__(n_var=2 * n_points,
-                         n_obj=2,  # Change this to 3 objectives
+                         n_obj=3,  # Change this to 3 objectives
                          xl=0.0,
                          xu=100.0)
     
@@ -25,7 +25,7 @@ class PathFindingProblem(Problem):
                 distance = np.linalg.norm(np.array(point) - np.array(vertex))
                 if distance < min_distance:
                     min_distance = distance
-        return -1 / 100 * (min_distance + 1)  # Inverse penalty 
+        return 1 /  (100*(min_distance +1 ))  # Inverse penalty 
     
     def point_in_polygon(self, point, polygon):
         x, y = point
@@ -64,8 +64,8 @@ class PathFindingProblem(Problem):
     def smoothness(self, position):
         smooth = 0
         for i in range(1, len(position) - 1):
-            alpha = math.atan2(position[i + 1][0] - position[i][0], position[i + 1][1] - position[i][1])
-            beta = math.atan2(position[i][0] - position[i - 1][0], position[i][1] - position[i - 1][1])
+            alpha = math.atan2(position[i + 1][1] - position[i][1], position[i + 1][0] - position[i][0])
+            beta = math.atan2(position[i][1] - position[i - 1][1], position[i][0] - position[i - 1][0])
             if abs(alpha - beta) > math.pi / 8:
                 smooth += 100
             smooth += abs(alpha - beta)
@@ -92,9 +92,9 @@ class PathFindingProblem(Problem):
             smooth = self.smoothness(path) 
             total_distances.append(total_distance)
             penalties.append(total_penalty)
-            #smoothness_scores.append(smooth)
+            smoothness_scores.append(smooth)
 
-        out["F"] = np.column_stack([total_distances, penalties])
+        out["F"] = np.column_stack([total_distances, penalties,smoothness_scores])
 
 def plot_path(barriers, path):
     fig, ax = plt.subplots()

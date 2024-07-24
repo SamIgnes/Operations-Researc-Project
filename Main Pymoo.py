@@ -6,6 +6,8 @@ from pymoo.core.problem import Problem
 from pymoo.algorithms.moo.nsga2 import NSGA2
 from pymoo.optimize import minimize
 
+from RandomPolygon import create_non_intersecting_polygons
+
 class PathFindingProblem(Problem):
 
     def __init__(self, start, end, barriers, n_points = 10): 
@@ -129,7 +131,7 @@ def plot_path(barriers, path):
     if path is not None:
         x_coords = path[:, 0]
         y_coords = path[:, 1]
-        ax.plot(x_coords, y_coords, 'bo-')
+        ax.plot(x_coords, y_coords, 'b-')
 
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
@@ -139,17 +141,12 @@ def plot_path(barriers, path):
     plt.show()
 
 # Define the barriers as lists of (x, y) coordinates (irregular polygons)
-barriers = [
-    [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
-    [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
-    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
-    [(70,65), (50, 10), (20,10)]
-
-]
 
 # Define start and end points
 start = np.array([0, 0])
 end = np.array([90, 90])
+
+barriers = create_non_intersecting_polygons(5,seed=1)
 
 # Define the problem
 problem = PathFindingProblem(start, end, barriers)

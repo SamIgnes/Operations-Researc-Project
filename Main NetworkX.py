@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import math
 import numpy as np
-#from scipy.interpolate import splprep, splev
+from RandomPolygon import create_non_intersecting_polygons
 
 
 
@@ -101,76 +101,14 @@ def plot_environment_and_path(barriers, paths):
     plt.grid(True)
     plt.gca().set_aspect('equal', adjustable='box')
 
-def generate_random_polygon(max_sides, min_radius, max_radius):
-    num_sides = random.randint(3, max_sides)
-    angle_step = 360 / num_sides
-    points = []
-    for i in range(num_sides):
-        angle = math.radians(i * angle_step)
-        radius = random.uniform(min_radius, max_radius)
-        x = radius * math.cos(angle)
-        y = radius * math.sin(angle)
-        points.append((x, y))
-    return points
-
-def is_intersecting(polygon, barriers):
-    poly_patch = patches.Polygon(polygon, closed=True)
-    for barrier in barriers:
-        barrier_patch = patches.Polygon(barrier, closed=True)
-        if poly_patch.get_path().intersects_path(barrier_patch.get_path()):
-            return True
-    return False
-
-def create_non_intersecting_polygons(n, max_sides=6, min_radius=10, max_radius=20, width=100, height=100, start=(0, 0), end=(100, 100)):
-    barriers = []
-    attempts = 0
-    while len(barriers) < n and attempts < 1000:
-        attempts += 1
-        polygon = generate_random_polygon(max_sides, min_radius, max_radius)
-        centroid_x = random.uniform(0, width)
-        centroid_y = random.uniform(0, height)
-        translated_polygon = [(x + centroid_x, y + centroid_y) for x, y in polygon]
-        
-        # Check if start and end points are inside the translated polygon
-        if not point_in_polygon(start, translated_polygon) and not point_in_polygon(end, translated_polygon):
-            if not is_intersecting(translated_polygon, barriers):
-                barriers.append(translated_polygon)
-    
-    return barriers
-
-def plot_polygons(barriers):
-    fig, ax = plt.subplots()
-    ax.set_xlim(0, 100)
-    ax.set_ylim(0, 100)
-    for barrier in barriers:
-        polygon = patches.Polygon(barrier, closed=True, edgecolor='r', facecolor='none')
-        ax.add_patch(polygon)
-    ax.set_xlabel('X Coordinate')
-    ax.set_ylabel('Y Coordinate')
-    ax.set_title('Generated Non-Intersecting Polygons')
-    plt.grid(True)
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.show()
-
 
 width = 100
 height = 100
 
-
-# start = (random.randint(0, width), random.randint(0, height))
-# end = (random.randint(0, width), random.randint(0, height))
-
 start = (0,0)
 end = (90,90)
-#barriers =[
-#    [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
-#    [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
-#    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
-#]
-barriers = create_non_intersecting_polygons(10, start=start, end=end)
 
-plot_environment_and_path(barriers, [])
-plt.show()
+barriers = create_non_intersecting_polygons(5, seed = 1)
 
 # Create graph
 graph = create_graph(barriers, width, height)

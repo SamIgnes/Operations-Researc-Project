@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import heapq
 import math
+from RandomPolygon import create_non_intersecting_polygons
+
 
 class Node:
     def __init__(self, point, parent=None):
@@ -109,7 +111,7 @@ def plot_environment_and_path(barriers, path):
     if path:
         x_coords = [point[0] for point in path]
         y_coords = [point[1] for point in path]
-        ax.plot(x_coords, y_coords, 'bo-')
+        ax.plot(x_coords, y_coords, 'b-')
 
     ax.set_xlabel('X Coordinate')
     ax.set_ylabel('Y Coordinate')
@@ -119,12 +121,7 @@ def plot_environment_and_path(barriers, path):
     plt.show()
 
 # Define the barriers as lists of (x, y) coordinates (irregular polygons)
-barriers = [
-    [(10, 10), (20, 10), (15, 20)],  # Triangle barrier
-    [(30, 30), (50, 30), (50, 50), (30, 50)],  # Rectangle barrier
-    [(70, 70), (80, 65), (85, 75), (75, 80)],  # Irregular quadrilateral barrier
-    [(10,10), (80,80),(10, 85), (10,85)] #Irregular triangle
-]
+barriers = create_non_intersecting_polygons(5, seed=1)
 
 # Define start and end points
 start = (0, 0)

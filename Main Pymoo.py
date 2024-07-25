@@ -165,5 +165,33 @@ res = minimize(problem,
 optimal_path = res.X.reshape(-1, problem.n_points, 2)[0]
 optimal_path = np.vstack([start, optimal_path, end])
 
+# compute smoothness, penalty, tot distance
+print(optimal_path)
+def calculate_path_metrics(path, problem):
+    total_distance = 0
+    total_penalty = 0
+    collision = 0
+
+    for i in range(len(path) - 1):
+        total_distance += np.linalg.norm(path[i + 1] - path[i])
+        total_penalty += problem.calculate_penalty(path[i])
+        if problem.is_collision(path[i], path[i + 1]):
+            collision += 1  # Increment collision count
+
+    smooth = problem.smoothness(path)
+    return total_distance, smooth, total_penalty, collision
+
+# Calculate metrics for the optimal path
+total_distance, smooth, total_penalty, collision = calculate_path_metrics(optimal_path, problem)
+
+# Print the metrics
+print("Optimal Path Metrics:")
+print(f"Total Distance: {total_distance}")
+print(f"Smoothness: {smooth}")
+print(f"Penalty: {total_penalty}")
+print(f"Collisions: {collision}")
+
+
+
 # Plot the environment and the path found
 plot_path(barriers, optimal_path)

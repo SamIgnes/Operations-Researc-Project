@@ -135,7 +135,7 @@ def plot_environment_and_path(barriers, path):
     plt.show()
 
 # Define the barriers as lists of (x, y) coordinates (irregular polygons)
-barriers = create_non_intersecting_polygons(5, seed=1)
+barriers = create_non_intersecting_polygons(5, seed=2)
 
 # Define start and end points
 start = (0, 0)

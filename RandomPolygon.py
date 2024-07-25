@@ -26,8 +26,9 @@ def is_intersecting(polygon, barriers):
             return True
     return False
 
-def create_non_intersecting_polygons(n, max_sides=6, min_radius=10, max_radius=20, width=100, height=100, start=(0, 0), end=(100, 100), seed=None):
+def create_non_intersecting_polygons(n, max_sides=6, min_radius=10, max_radius=20, width=100, height=100, start=(0, 0), end=(90, 90), seed=None):
     if seed is not None:
+        seed = seed*1000
         random.seed(seed)
     
     barriers = []

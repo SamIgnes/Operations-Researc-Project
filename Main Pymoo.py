@@ -30,7 +30,7 @@ class PathFindingProblem(Problem):
                 if distance < min_distance:
                     min_distance = distance
         if min_distance < self.safe_distance:
-            penalty = 1 / (min_distance)  # Inverse penalty within safe distance
+            penalty = 1 / (min_distance + 0.01)  # Inverse penalty within safe distance
         else:
             penalty = 0  # No penalty beyond safe distance
         return penalty
@@ -77,10 +77,7 @@ class PathFindingProblem(Problem):
             angle_diff = abs(alpha - beta)
             if angle_diff > math.pi:
                 angle_diff = 2 * math.pi - angle_diff
-            if angle_diff > math.pi / 8:  # Penalize sharp turns
-                smooth += 10
             smooth += angle_diff
-        
         return smooth / len(position)  # Normalize smoothness score
 
     def uniformity(self, path):

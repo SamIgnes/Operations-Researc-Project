@@ -43,7 +43,7 @@ def astar(start, end, barriers):
                 continue
 
             neighbor_node = Node(next_point, current_node)
-            neighbor_node.g = current_node.g + heuristic(current_node.point, neighbor_node.point) + smoothness_penalty(current_node, neighbor_node)
+            neighbor_node.g = current_node.g + heuristic(current_node.point, neighbor_node.point) + smoothness_penalty(current_node, neighbor_node)+calculate_penalty(next_point,barriers)
             neighbor_node.h = heuristic(neighbor_node.point, end_node.point)
             neighbor_node.f = neighbor_node.g + neighbor_node.h
 
@@ -51,6 +51,20 @@ def astar(start, end, barriers):
                 heapq.heappush(open_list, neighbor_node)
 
     return None
+
+def calculate_penalty(point, barriers, safe_distance = 2):
+    min_distance = float('inf')
+    for barrier in barriers:
+        for vertex in barrier:
+            distance = heuristic(point,vertex)
+            if distance < min_distance:
+                min_distance = distance
+    if min_distance < safe_distance:
+        penalty = 1 / (min_distance + 0.01)  # Inverse penalty within safe distance
+    else:
+        penalty = 0  # No penalty beyond safe distance
+    return penalty
+
 
 def smoothness_penalty(current_node, neighbor_node):
     if not current_node.parent:
@@ -121,7 +135,7 @@ def plot_environment_and_path(barriers, path):
     plt.show()
 
 # Define the barriers as lists of (x, y) coordinates (irregular polygons)
-barriers = create_non_intersecting_polygons(5, seed=1)
+barriers = create_non_intersecting_polygons(5, seed=2)
 
 # Define start and end points
 start = (0, 0)

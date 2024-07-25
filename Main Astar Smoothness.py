@@ -39,24 +39,24 @@ def astar(start, end, barriers):
 
         neighbors = get_neighbors(current_node.point, barriers)
         for next_point in neighbors:
-            if next_point in closed_list:  # Not possible to go back
+            if next_point in closed_list:
                 continue
 
             neighbor_node = Node(next_point, current_node)
-            neighbor_node.g = current_node.g + heuristic(current_node.point, neighbor_node.point) + smoothness_penalty(current_node, neighbor_node)+calculate_penalty(next_point,barriers)
+            neighbor_node.g = current_node.g + heuristic(current_node.point, neighbor_node.point) + smoothness_penalty(current_node, neighbor_node) + calculate_penalty(next_point, barriers)
             neighbor_node.h = heuristic(neighbor_node.point, end_node.point)
             neighbor_node.f = neighbor_node.g + neighbor_node.h
 
-            if add_to_open(open_list, neighbor_node): 
+            if add_to_open(open_list, neighbor_node):
                 heapq.heappush(open_list, neighbor_node)
 
     return None
 
-def calculate_penalty(point, barriers, safe_distance = 2):
+def calculate_penalty(point, barriers, safe_distance=2):
     min_distance = float('inf')
     for barrier in barriers:
         for vertex in barrier:
-            distance = heuristic(point,vertex)
+            distance = heuristic(point, vertex)
             if distance < min_distance:
                 min_distance = distance
     if min_distance < safe_distance:
@@ -64,7 +64,6 @@ def calculate_penalty(point, barriers, safe_distance = 2):
     else:
         penalty = 0  # No penalty beyond safe distance
     return penalty
-
 
 def smoothness_penalty(current_node, neighbor_node):
     if not current_node.parent:
@@ -88,10 +87,10 @@ def smoothness_penalty(current_node, neighbor_node):
 
 def get_neighbors(point, barriers):
     neighbors = []
-    step_size =  1 # Step size for moving to neighbors
+    step_size = 1  # Step size for moving to neighbors
 
-    for dx in [-step_size, 0, step_size]: # Aumentare questi for 
-        for dy in [-step_size, 0, step_size]: #Aumentare questi for 
+    for dx in [-step_size, 0, step_size]:
+        for dy in [-step_size, 0, step_size]:
             if dx == 0 and dy == 0:
                 continue
             neighbor = (point[0] + dx, point[1] + dy)
@@ -109,7 +108,7 @@ def is_collision(point, barriers):
 
 def add_to_open(open_list, neighbor_node):
     for node in open_list:
-        if neighbor_node.point == node.point and neighbor_node.g >= node.g: 
+        if neighbor_node.point == node.point and neighbor_node.g >= node.g:
             return False
     return True
 
@@ -143,6 +142,30 @@ end = (90, 90)
 
 # Find the path using A* algorithm
 path = astar(start, end, barriers)
+
+def calculate_path_metrics(path, barriers):
+    total_distance = 0
+    total_penalty = 0
+    smooth = 0
+
+    for i in range(len(path) - 1):
+        total_distance += heuristic(path[i + 1], path[i])
+        total_penalty += calculate_penalty(path[i], barriers)
+        if i > 0:
+            # Create nodes to calculate smoothness penalty
+            current_node = Node(path[i], Node(path[i - 1]))
+            neighbor_node = Node(path[i + 1], current_node)
+            smooth += smoothness_penalty(current_node, neighbor_node)
+    return total_distance, smooth, total_penalty
+
+# Calculate metrics for the optimal path
+total_distance, smooth, total_penalty = calculate_path_metrics(path, barriers)
+
+# Print the metrics
+print("Optimal Path Metrics:")
+print(f"Total Distance: {total_distance}")
+print(f"Smoothness: {smooth}")
+print(f"Penalty: {total_penalty}")
 
 # Plot the environment and the path found
 plot_environment_and_path(barriers, path)

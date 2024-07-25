@@ -6,7 +6,16 @@ import math
 import numpy as np
 from RandomPolygon import create_non_intersecting_polygons
 
+class Node:
+    def __init__(self, point, parent=None):
+        self.point = point
+        self.parent = parent
+        self.g = 0  # Distance from start node
+        self.h = 0  # Heuristic distance to end node
+        self.f = 0  # Total cost
 
+    def __lt__(self, other):
+        return self.f < other.f
 
 def heuristic(a, b):
     return math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
@@ -101,6 +110,26 @@ def plot_environment_and_path(barriers, paths):
     plt.grid(True)
     plt.gca().set_aspect('equal', adjustable='box')
 
+def smoothness_penalty(current_node, neighbor_node):
+    if not current_node.parent:
+        return 0
+
+    prev_point = current_node.parent.point
+    curr_point = current_node.point
+    next_point = neighbor_node.point
+
+    prev_direction = (curr_point[0] - prev_point[0], curr_point[1] - prev_point[1])
+    next_direction = (next_point[0] - curr_point[0], next_point[1] - curr_point[1])
+
+    angle1 = math.atan2(prev_direction[1], prev_direction[0])
+    angle2 = math.atan2(next_direction[1], next_direction[0])
+
+    angle_difference = abs(angle2 - angle1)
+    if angle_difference > math.pi:
+        angle_difference = 2 * math.pi - angle_difference
+
+    return angle_difference  # Penalize the change in direction
+
 
 width = 100
 height = 100
@@ -115,6 +144,31 @@ graph = create_graph(barriers, width, height)
 
 # Find the path using A* algorithm
 best_path_astar = nx.astar_path(graph, start, end, heuristic=heuristic)
+
+def calculate_path_metrics(path, barriers):
+    total_distance = 0
+    total_penalty = 0
+    smooth = 0
+
+    for i in range(len(path) - 1):
+        total_distance += heuristic(path[i + 1], path[i])
+        total_penalty += calculate_penalty(path[i], barriers)
+        if i > 0:
+            # Create nodes to calculate smoothness penalty
+            current_node = Node(path[i], Node(path[i - 1]))
+            neighbor_node = Node(path[i + 1], current_node)
+            smooth += smoothness_penalty(current_node, neighbor_node)
+    return total_distance, smooth, total_penalty
+
+
+# Calculate metrics for the optimal path
+total_distance, smooth, total_penalty = calculate_path_metrics(best_path_astar, barriers)
+
+# Print the metrics
+print("Optimal Path Metrics:")
+print(f"Total Distance: {total_distance}")
+print(f"Smoothness: {smooth}")
+print(f"Penalty: {total_penalty}")
 
 plot_environment_and_path(barriers, [best_path_astar])
 

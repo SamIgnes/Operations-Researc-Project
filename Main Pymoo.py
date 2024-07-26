@@ -143,7 +143,7 @@ def plot_path(barriers, path):
 start = np.array([0, 0])
 end = np.array([90, 90])
 
-barriers = create_non_intersecting_polygons(5,seed=1)
+barriers = create_non_intersecting_polygons(5,seed = 13)
 
 # Define the problem
 problem = PathFindingProblem(start, end, barriers)

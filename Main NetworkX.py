@@ -137,7 +137,7 @@ height = 100
 start = (0,0)
 end = (90,90)
 
-barriers = create_non_intersecting_polygons(5, seed = 1)
+barriers = create_non_intersecting_polygons(5, seed = 2)
 
 # Create graph
 graph = create_graph(barriers, width, height)
